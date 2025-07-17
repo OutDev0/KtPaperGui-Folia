@@ -1,6 +1,7 @@
 package com.mattmx.ktgui.scheduling
 
 import com.mattmx.ktgui.utils.Invokable
+import io.papermc.paper.threadedregions.scheduler.ScheduledTask
 import org.bukkit.scheduler.BukkitTask
 import java.util.*
 
@@ -14,50 +15,57 @@ class TaskTracker : Invokable<TaskTracker> {
 
     infix fun runAsync(block: TaskTrackerTask.() -> Unit) {
         var task: TaskTrackerTask? = null
-        task = TaskTrackerTask(this, async {
+        val rawTask = async {
             block(task!!)
             list.remove(task!!)
-        }).apply { list.add(this) }
+        }
+        task = TaskTrackerTask(this, TaskWrapper.Bukkit(rawTask)).apply { list.add(this) }
     }
 
     infix fun runSync(block: TaskTrackerTask.() -> Unit) {
         var task: TaskTrackerTask? = null
-        task = TaskTrackerTask(this, sync {
+        val rawTask = sync {
             block(task!!)
             list.remove(task!!)
-        }).apply { list.add(this) }
+        }
+        task = TaskTrackerTask(this, TaskWrapper.Folia(rawTask)).also { list.add(it) }
     }
 
     fun runAsyncLater(period: Long, block: TaskTrackerTask.() -> Unit) {
         var task: TaskTrackerTask? = null
-        task = TaskTrackerTask(this, asyncDelayed(period) {
+        val rawTask = asyncDelayed(period) {
             block(task!!)
             list.remove(task!!)
-        }).apply { list.add(this) }
+        }
+        task = TaskTrackerTask(this, TaskWrapper.Bukkit(rawTask)).apply { list.add(this) }
     }
 
     fun runSyncLater(period: Long, block: TaskTrackerTask.() -> Unit) {
         var task: TaskTrackerTask? = null
-        task = TaskTrackerTask(this, syncDelayed(period) {
+        task = TaskTrackerTask(this, TaskWrapper.Folia(syncDelayed(period) {
             block(task!!)
             list.remove(task!!)
-        }).apply { list.add(this) }
+        })).also { list.add(it) }
     }
+
 
     fun runAsyncRepeat(delay: Long, period: Long = 0L, block: TaskTrackerTask.() -> Unit) {
         var task: TaskTrackerTask? = null
-        task = TaskTrackerTask(this, asyncRepeat(delay, period) {
+        val rawTask = asyncRepeat(delay, period) {
             block(task!!)
             task!!.iterations++
-        }).apply { list.add(this) }
+        }
+        task = TaskTrackerTask(this, TaskWrapper.Bukkit(rawTask)).apply {
+            list.add(this)
+        }
     }
 
     fun runSyncRepeat(delay: Long, period: Long = 0L, block: TaskTrackerTask.() -> Unit) {
         var task: TaskTrackerTask? = null
-        task = TaskTrackerTask(this, syncRepeat(delay, period) {
+        task = TaskTrackerTask(this, TaskWrapper.Folia(syncRepeat(delay, period) {
             block(task!!)
             task!!.iterations++
-        }).apply { list.add(this) }
+        })).also { list.add(it) }
     }
 
     fun cancelAll() = list.apply {
@@ -82,7 +90,17 @@ class TaskTracker : Invokable<TaskTracker> {
     inline fun <reified T : TaskTrackerTask> cancelIfInstance() =
         cancelIf { it is T } as List<T>
 
-    infix fun removeTask(task: BukkitTask) = cancelIf { it.task == task }
+    infix fun removeTask(task: ScheduledTask) =
+        cancelIf {
+            val wrapper = it.taskWrapper
+            wrapper is TaskWrapper.Folia && wrapper.task == task
+        }
+
+    infix fun removeTask(task: BukkitTask) =
+        cancelIf {
+            val wrapper = it.taskWrapper
+            wrapper is TaskWrapper.Bukkit && wrapper.task == task
+        }
 
     infix fun removeTask(task: TaskTrackerTask) {
         list.remove(task)

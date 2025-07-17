@@ -1,17 +1,15 @@
 package com.mattmx.ktgui.scheduling
 
-import org.bukkit.scheduler.BukkitTask
-
 /**
- * Wrapper class for the [BukkitTask] task.
+ * Wrapper class for a tracked task that can be either Bukkit or Folia.
  */
-open class TaskTrackerTask(
+class TaskTrackerTask(
     private val owner: TaskTracker,
-    task: BukkitTask
-) : IteratingTask(task) {
+    override val taskWrapper: TaskWrapper
+) : IteratingTask(taskWrapper) {
 
     override fun cancel() {
-        owner.removeTask(task)
-        task.cancel()
+        owner.removeTask(this)
+        super.cancel()
     }
 }

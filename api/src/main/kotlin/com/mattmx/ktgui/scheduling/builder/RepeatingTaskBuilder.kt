@@ -1,8 +1,10 @@
 package com.mattmx.ktgui.scheduling.builder
 
 import com.mattmx.ktgui.scheduling.IteratingTask
+import com.mattmx.ktgui.scheduling.TaskWrapper
 import com.mattmx.ktgui.scheduling.asyncRepeat
 import com.mattmx.ktgui.scheduling.syncRepeat
+import io.papermc.paper.threadedregions.scheduler.ScheduledTask
 import org.bukkit.scheduler.BukkitTask
 
 class RepeatingTaskBuilder(
@@ -36,17 +38,31 @@ class RepeatingTaskBuilder(
     fun run(): IteratingTask {
         var task: IteratingTask? = null
 
-        val block: BukkitTask.() -> Unit = task@{
-            if (task!!.iterations > max) {
+        val bukkitBlock: BukkitTask.() -> Unit = {
+            if (task!!.iterations > max && max != -1L) {
                 cancel()
-                return@task
             }
-
             block.invoke(task!!)
             task!!.iterations++
         }
 
-        task = IteratingTask(if (isAsync) asyncRepeat(period, delay, block) else syncRepeat(period, delay, block))
+        val foliaBlock: ScheduledTask.() -> Unit = {
+            if (task!!.iterations > max && max != -1L) {
+                cancel()
+            }
+            block.invoke(task!!)
+            task!!.iterations++
+        }
+
+        val wrappedTask = if (isAsync) {
+            val bukkitTask = asyncRepeat(period, delay, bukkitBlock)
+            TaskWrapper.Bukkit(bukkitTask)
+        } else {
+            val foliaTask = syncRepeat(period, delay, foliaBlock)
+            TaskWrapper.Folia(foliaTask)
+        }
+
+        task = IteratingTask(wrappedTask)
 
         return task
     }

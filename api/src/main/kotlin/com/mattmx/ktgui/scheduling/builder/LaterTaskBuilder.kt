@@ -1,6 +1,7 @@
 package com.mattmx.ktgui.scheduling.builder
 
 import com.mattmx.ktgui.scheduling.*
+import io.papermc.paper.threadedregions.scheduler.ScheduledTask
 import org.bukkit.scheduler.BukkitTask
 
 class LaterTaskBuilder(
@@ -23,12 +24,25 @@ class LaterTaskBuilder(
     fun run(): IteratingTask {
         var task: IteratingTask? = null
 
-        val block: BukkitTask.() -> Unit = task@{
+        val bukkitBlock: BukkitTask.() -> Unit = {
             block.invoke(task!!)
             task!!.iterations++
         }
 
-        task = IteratingTask(if (isAsync) asyncDelayed(delay, block) else syncDelayed(delay, block))
+        val foliaBlock: ScheduledTask.() -> Unit = {
+            block.invoke(task!!)
+            task!!.iterations++
+        }
+
+        val wrappedTask = if (isAsync) {
+            val bukkitTask = asyncDelayed(delay, bukkitBlock)
+            TaskWrapper.Bukkit(bukkitTask)
+        } else {
+            val foliaTask = syncDelayed(delay, foliaBlock)
+            TaskWrapper.Folia(foliaTask)
+        }
+
+        task = IteratingTask(wrappedTask)
 
         return task
     }

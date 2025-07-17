@@ -196,7 +196,7 @@ open class GuiScreen(
     fun openIfNotCancelled(player: Player, inventory: Inventory) {
         if (!firePreGuiOpenEvent(player)) {
             if (isAsync()) {
-                Bukkit.getScheduler().runTask(GuiManager.owningPlugin) { ->
+                GuiManager.owningPlugin.server.globalRegionScheduler.run(GuiManager.owningPlugin) {
                     player.openInventory(inventory)
                     player.setOpenGui(this)
                     open.invoke(player)

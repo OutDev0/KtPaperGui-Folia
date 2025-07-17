@@ -1,7 +1,6 @@
 package com.mattmx.ktgui.examples;
 
 import com.mattmx.ktgui.GuiManager;
-import com.mattmx.ktgui.commands.declarative.ChainCommandBuilder;
 import com.mattmx.ktgui.components.GuiPattern;
 import com.mattmx.ktgui.components.button.ButtonClickedEvent;
 import com.mattmx.ktgui.components.button.GuiButton;
@@ -22,7 +21,6 @@ import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.NotNull;
 
-import static com.mattmx.ktgui.dsl.EventKt.event;
 import static com.mattmx.ktgui.dsl.EventKt.event;
 import static com.mattmx.ktgui.sound.ChainSoundBuilderKt.sound;
 import static com.mattmx.ktgui.utils.ColorKt.component;
@@ -90,9 +88,9 @@ public class JavaUpdateExample implements Example {
                 .addLine(Component.text("Test"))
                 .addLine(Component.text("two"));
 
-        Bukkit.getScheduler().runTaskLater(GuiManager.owningPlugin, () -> {
-            builder.set(0, Component.text("5 seconds have passed"));
-        }, 20 * 5L);
+        GuiManager.owningPlugin.getServer().getGlobalRegionScheduler().runDelayed(GuiManager.owningPlugin, task ->
+                        builder.set(0, Component.text("5 seconds have passed")),
+                20 * 5L);
 
         builder.showFor(player);
     }

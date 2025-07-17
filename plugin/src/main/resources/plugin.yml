@@ -5,7 +5,8 @@ api-version: 1.17
 prefix: KtGUI
 authors: [ MattMX ]
 website: https://github.com/Matt-MX/KtPaperGui
-description: Declarative GUI Library for Paper.
+description: Declarative GUI Library for Paper and Folia.
+folia-supported: true
 
 depend:
   - MCKotlin-Paper

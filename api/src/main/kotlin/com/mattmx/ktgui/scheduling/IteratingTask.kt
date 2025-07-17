@@ -1,9 +1,7 @@
 package com.mattmx.ktgui.scheduling
 
-import org.bukkit.scheduler.BukkitTask
-
 open class IteratingTask(
-    val task: BukkitTask
+    open val taskWrapper: TaskWrapper
 ) {
     /**
      * How many times the task has repeated.
@@ -11,5 +9,8 @@ open class IteratingTask(
      */
     var iterations = 0
 
-    open fun cancel() = task.cancel()
+    open fun cancel() = when (val t = taskWrapper) {
+        is TaskWrapper.Bukkit -> t.task.cancel()
+        is TaskWrapper.Folia -> t.task.cancel()
+    }
 }

@@ -32,7 +32,7 @@ class AnimatedScoreboardExample : Example {
     }
 
     init {
-        Bukkit.getScheduler().runTaskTimer(KotlinGui.plugin!!, { -> update() }, 20, 2)
+        KotlinGui.plugin!!.server.globalRegionScheduler.runAtFixedRate(KotlinGui.plugin!!, { update() }, 20, 2)
     }
 
     private fun update() = builder.apply {

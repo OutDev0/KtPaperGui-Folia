@@ -1,5 +1,6 @@
 package com.mattmx.ktgui.scheduling
 
+import io.papermc.paper.threadedregions.scheduler.ScheduledTask
 import org.bukkit.Bukkit
 import org.bukkit.plugin.java.JavaPlugin
 import org.bukkit.scheduler.BukkitTask
@@ -48,7 +49,7 @@ fun <T, U, O> KFunction2<T, U, O>.getAsync(arg: T, arg1: U) = future {
     }
 }
 
-val <T> KFunction<T>.syncTask: BukkitTask
+val <T> KFunction<T>.syncTask: ScheduledTask
     get() = sync {
         isAccessible = true
         call()
@@ -88,9 +89,9 @@ fun isAsync() = !Bukkit.isPrimaryThread()
  * @author MattMX
  * @param task to execute
  */
-fun sync(task: BukkitTask.() -> Unit): BukkitTask {
-    var delayedInit: BukkitTask? = null
-    delayedInit = Bukkit.getScheduler().runTask(Scheduling.plugin) { -> task(delayedInit!!) }
+fun sync(task: ScheduledTask.() -> Unit): ScheduledTask {
+    var delayedInit: ScheduledTask? = null
+    delayedInit = Scheduling.plugin.server.globalRegionScheduler.run(Scheduling.plugin) { task(delayedInit!!) }
     return delayedInit
 }
 
@@ -104,9 +105,9 @@ fun sync(task: BukkitTask.() -> Unit): BukkitTask {
  * @param maxIterations how many times we want to do this before cancelling automatically
  * @param task to execute
  */
-fun syncRepeat(period: Long, delay: Long = 0, task: BukkitTask.() -> Unit): BukkitTask {
-    var delayedInit: BukkitTask? = null
-    delayedInit = Bukkit.getScheduler().runTaskTimer(Scheduling.plugin, {-> task(delayedInit!!) }, delay, period)
+fun syncRepeat(period: Long, delay: Long = 0, task: ScheduledTask.() -> Unit): ScheduledTask {
+    var delayedInit: ScheduledTask? = null
+    delayedInit = Scheduling.plugin.server.globalRegionScheduler.runAtFixedRate(Scheduling.plugin, { task(delayedInit!!) }, delay, period)
     return delayedInit
 }
 
@@ -117,9 +118,9 @@ fun syncRepeat(period: Long, delay: Long = 0, task: BukkitTask.() -> Unit): Bukk
  * @param delay the delay of when this will execute, must be +ve (in ticks)
  * @param task to execute
  */
-fun syncDelayed(delay: Long, task: BukkitTask.() -> Unit): BukkitTask {
-    var delayedInit: BukkitTask? = null
-    delayedInit = Bukkit.getScheduler().runTaskLater(Scheduling.plugin, {-> task(delayedInit!!) }, delay)
+fun syncDelayed(delay: Long, task: ScheduledTask.() -> Unit): ScheduledTask {
+    var delayedInit: ScheduledTask? = null
+    delayedInit = Scheduling.plugin.server.globalRegionScheduler.runDelayed(Scheduling.plugin, { task(delayedInit!!) }, delay)
     return delayedInit
 }
 

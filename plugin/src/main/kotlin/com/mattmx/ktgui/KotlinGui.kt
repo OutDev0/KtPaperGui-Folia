@@ -43,34 +43,38 @@ class KotlinGui : JavaPlugin() {
         val mainColor = "&#7F52FF"
         val subColor = "&#E24462"
 
-        val animatedScoreboard = AnimatedScoreboardExample()
-        val scoreboardExample = ScoreboardExample()
-        val signalScoreboardExample = SignalScoreboardExample(this)
-        val examples by multiChoiceArgument(hashMapOf(
-            "animated-scoreboard" to { animatedScoreboard },
-            "scoreboard" to { scoreboardExample },
-            "anvil-input" to { AnvilInputGuiExample() },
-            "config" to { ConfigScreenExample() },
-            "conversation" to { ConversationGuiExample() },
-            "random" to { CustomGUI() },
-            "pattern" to { GuiPatternExample() },
-            "infinite" to { InfiniteGuiExample() },
-            "pages" to { MultiPageExample() },
-            "counter" to { TitleCounterExample() },
-            "signals" to { SignalsExample() },
-            "signals-list" to { SignalsListExample() },
-            "hook" to { GuiHookExample() },
-            "java-simple" to { JavaGuiExample() },
-            "java-new" to { JavaUpdateExample() },
-            "refresh" to { RefreshBlockExample() },
-            "config-gui" to { GuiConfigExample() },
-            "refresh-scoreboard" to { signalScoreboardExample },
-            "new-multi-screen-cram" to { NewCramMultiPageExample() },
-            "new-multi-screen-cram-strategy" to { CramStrategyExample() },
-            "new-multi-screen" to { NewMultiPageExample() },
-            "hotbar" to { HotbarExample() },
-            "f" to { Example { createMenu() andOpen it } }
-        ))
+        val examples by multiChoiceArgument(buildMap {
+            // Scoreboard API is fully unsupported in Folia
+            if (!isFolia()) {
+                put("animated-scoreboard") { AnimatedScoreboardExample() }
+                put("scoreboard") { ScoreboardExample() }
+                put("java-new") { JavaUpdateExample() }
+            } else {
+                log.info("Running on Folia, skipping Folia-unsupported examples")
+            }
+
+            // These work should work on both Paper and Folia
+            put("anvil-input") { AnvilInputGuiExample() }
+            put("config") { ConfigScreenExample() }
+            put("conversation") { ConversationGuiExample() }
+            put("random") { CustomGUI() }
+            put("pattern") { GuiPatternExample() }
+            put("infinite") { InfiniteGuiExample() }
+            put("pages") { MultiPageExample() }
+            put("counter") { TitleCounterExample() }
+            put("signals") { SignalsExample() }
+            put("signals-list") { SignalsListExample() }
+            put("hook") { GuiHookExample() }
+            put("java-simple") { JavaGuiExample() }
+            put("refresh") { RefreshBlockExample() }
+            put("config-gui") { GuiConfigExample() }
+            put("refresh-scoreboard") { SignalScoreboardExample(this@KotlinGui) }
+            put("new-multi-screen-cram") { NewCramMultiPageExample() }
+            put("new-multi-screen-cram-strategy") { CramStrategyExample() }
+            put("new-multi-screen") { NewMultiPageExample() }
+            put("hotbar") { HotbarExample() }
+            put("f") { Example { createMenu() andOpen it } }
+        })
         GuiHookExample.registerListener(this)
 
         placeholderExpansion {
@@ -85,7 +89,9 @@ class KotlinGui : JavaPlugin() {
 
                 examples invalid { reply(!"&cProvide a valid example ID") }
                 ("example" / examples).runs<Player> {
-                    examples()().run(sender)
+                    val example = examples() as () -> Any
+                    val instance = example()
+                    runExample(instance, sender)
                 } permission "ktgui.command.examples"
 
                 ("version").runs<CommandSender> {
@@ -354,5 +360,17 @@ class KotlinGui : JavaPlugin() {
                 divider = "&7|&f"
             }
         }
+    }
+
+    private fun runExample(example: Any, player: Player) {
+        when (example) {
+            is Example -> example.run(player)
+            is GuiScreen -> example.open(player)
+            else -> log.warning("Unrecognized example type: ${example::class.simpleName}")
+        }
+    }
+
+    fun isFolia(): Boolean {
+        return Bukkit.getServer().javaClass.name.contains("folia", ignoreCase = true)
     }
 }
